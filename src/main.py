@@ -6,9 +6,9 @@ import os
 process = psutil.Process(os.getpid())
 
 # dataPath = "data/att48_d.txt"
-# dataPath = "data/five_d.txt"
+dataPath = "data/five_d.txt"
 # dataPath = "data/p01_d.txt"
-dataPath = "data/dantzig42_d.txt"	
+# dataPath = "data/dantzig42_d.txt"	
 algoritmos = [ hillClimbing, geneticAlgorithm, simulatedAnnealing, tabuSearch]
 
 for algoritmo in algoritmos:
