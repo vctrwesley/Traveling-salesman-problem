@@ -1,5 +1,6 @@
 import random
 import math
+from collections import deque
 
 def calculateTourLength(tour, distanceMatrix):
     totalDistance = 0
@@ -174,5 +175,53 @@ def simulatedAnnealing(numCities, distanceMatrix):
 
     return bestTour, bestLength 
 
-def tabuSearch(numCities, distanceMatrix):
-    pass
+def getNeighbors(tour):
+    neighbors = []
+    numCities = len(tour)
+    for i in range(numCities):
+        for j in range(i + 1, numCities):
+            neighbor = tour[:]
+            neighbor[i], neighbor[j] = neighbor[j], neighbor[i]
+            neighbors.append(neighbor)
+    return neighbors
+
+def tabuSearch(numCities, distanceMatrix, tabuSize=10, maxIterations=1000, patience=100):
+    currentTour = list(range(numCities))
+    random.shuffle(currentTour)
+    currentLength = calculateTourLength(currentTour, distanceMatrix)
+
+    bestTour = currentTour[:]
+    bestLength = currentLength
+
+    tabuList = deque(maxlen=tabuSize)
+    noImprovementCount = 0
+
+    for iteration in range(maxIterations):
+        if noImprovementCount >= patience:
+            break
+
+        neighbors = getNeighbors(currentTour)
+        neighbors = [neighbor for neighbor in neighbors if tuple(neighbor) not in tabuList]
+
+        bestNeighbor = None
+        bestNeighborLength = float('inf')
+
+        for neighbor in neighbors:
+            neighborLength = calculateTourLength(neighbor, distanceMatrix)
+            if neighborLength < bestNeighborLength:
+                bestNeighbor = neighbor
+                bestNeighborLength = neighborLength
+
+        if bestNeighbor and bestNeighborLength < bestLength:
+            bestTour = bestNeighbor[:]
+            bestLength = bestNeighborLength
+            noImprovementCount = 0
+        else:
+            noImprovementCount += 1
+
+        currentTour = bestNeighbor if bestNeighbor else currentTour
+        currentLength = bestNeighborLength if bestNeighbor else currentLength
+
+        tabuList.append(tuple(currentTour))
+
+    return bestTour, bestLength
