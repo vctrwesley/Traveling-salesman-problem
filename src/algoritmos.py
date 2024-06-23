@@ -140,7 +140,39 @@ def geneticAlgorithm(numCities, distanceMatrix):
     return bestSolution, bestDistance
 
 def simulatedAnnealing(numCities, distanceMatrix):
-    pass   
+    initialTemperature = 1000.0
+    finalTemperature = 1.0
+    alpha = 0.995 
+    maxIterations = 1000
+
+    currentTour = list(range(numCities))
+    random.shuffle(currentTour)
+    currentLength = calculateTourLength(currentTour, distanceMatrix)
+
+    bestTour = currentTour[:]
+    bestLength = currentLength
+
+    temperature = initialTemperature
+
+    while temperature > finalTemperature:
+        for _ in range(maxIterations):
+            newTour = currentTour[:]
+            i, j = random.sample(range(numCities), 2)
+            newTour[i], newTour[j] = newTour[j], newTour[i]
+
+            newLength = calculateTourLength(newTour, distanceMatrix)
+
+            if newLength < currentLength or random.random() < math.exp((currentLength - newLength) / temperature):
+                currentTour = newTour
+                currentLength = newLength
+
+                if currentLength < bestLength:
+                    bestTour = currentTour
+                    bestLength = currentLength
+
+        temperature *= alpha
+
+    return bestTour, bestLength 
 
 def tabuSearch(numCities, distanceMatrix):
     pass
