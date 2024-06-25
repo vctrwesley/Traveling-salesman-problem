@@ -1,16 +1,18 @@
 from algoritmos import hillClimbing, geneticAlgorithm, simulatedAnnealing, tabuSearch
-from utils import tspAlgorithms
+from utils import tspAlgorithms, selectDataset, loadData
 import psutil
 import os
+import random
 
 process = psutil.Process(os.getpid())
 
-# dataPath = "data/att48_d.txt"
-# dataPath = "data/five_d.txt"
-# dataPath = "data/p01_d.txt"
-dataPath = "data/dantzig42_d.txt"	
-algoritmos = [ hillClimbing, geneticAlgorithm, simulatedAnnealing, tabuSearch]
+dataPath = selectDataset("../data")
+numCities, distanceMatrix = loadData(dataPath)
+initialTour = list(range(numCities))
+random.shuffle(initialTour)
 
+algoritmos = [ hillClimbing, geneticAlgorithm, simulatedAnnealing, tabuSearch]
+print(f"Tour inicial: {initialTour}\n")
 for algoritmo in algoritmos:
-  result, memoryUsed, timeSpent = tspAlgorithms(algoritmo, dataPath, process)
-  print(f"Algoritmo: {algoritmo.__name__}, Resultado: {result}, Memoria utilizada: {memoryUsed}KB, Tempo gasto: {timeSpent}")
+  result, memoryUsed, timeSpent = tspAlgorithms(algoritmo, dataPath, process, initialTour=initialTour)
+  print(f"Algoritmo: {algoritmo.__name__}.\nMemoria utilizada: {memoryUsed}KB.\nTempo gasto: {timeSpent:.3f}s.\nCusto do tour: {result[1]:.0f}.\nTour retornado: {result[0]}.\nQuantidade de passos: {result[2]}.\n")
