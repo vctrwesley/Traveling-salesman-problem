@@ -9,12 +9,17 @@ def calculateTourLength(tour, distanceMatrix):
     totalDistance += distanceMatrix[tour[-1]][tour[0]]
     return totalDistance
 
-def hillClimbing( numCities, distanceMatrix):
-    currentTour = list(range(numCities))
-    random.shuffle(currentTour)
-    currentLength = calculateTourLength(currentTour, distanceMatrix)
+def hillClimbing( numCities, distanceMatrix, initialTour=None):
+    if initialTour is None:
+        currentTour = list(range(numCities))
+        random.shuffle(currentTour)
+    else:
+        currentTour = initialTour    
     
+    currentLength = calculateTourLength(currentTour, distanceMatrix)
+    steps = 0
     while True:
+        steps += 1
         neighbors = []
         for i in range(numCities):
             for j in range(i + 1, numCities):
@@ -35,19 +40,12 @@ def hillClimbing( numCities, distanceMatrix):
             currentLength = bestLength
         else:
             break
+    return currentTour, currentLength, steps
 
-    return currentTour, currentLength
-
-def initializePopulation(numCities, populationSize):
-    """
-    Gera uma população inicial de soluções aleatórias.
-    Cada solução é uma permutação dos índices das cidades.
-    
-    :param numCities: Número total de cidades no problema.
-    :param populationSize: Tamanho da população a ser gerada.
-    :return: Uma lista de soluções (permutações).
-    """
+def initializePopulation(numCities, populationSize, initialTour=None):
     population = []
+    if initialTour is not None:
+        population.append(initialTour)
     for _ in range(populationSize):
         individual = list(range(numCities))
         random.shuffle(individual)
@@ -55,13 +53,6 @@ def initializePopulation(numCities, populationSize):
     return population
 
 def calculateDistance(path, distanceMatrix):
-    """
-    Calcula a distância total de um caminho baseado na matriz de distâncias.
-
-    :param path: Uma lista representando a ordem das cidades visitadas.
-    :param distanceMatrix: Uma matriz 2D onde o elemento [i][j] representa a distância da cidade i para a cidade j.
-    :return: A distância total do caminho.
-    """
     totalDistance = 0
     for i in range(len(path)):
         fromCity = path[i]
@@ -70,14 +61,6 @@ def calculateDistance(path, distanceMatrix):
     return totalDistance
 
 def selectForReproduction(population, fitnessScores, tournamentSize=5):
-    """
-    Seleciona indivíduos para reprodução usando o método de seleção por torneio.
-
-    :param population: A população atual de soluções.
-    :param fitnessScores: Uma lista de aptidões correspondentes a cada indivíduo na população.
-    :param tournamentSize: O número de indivíduos a serem selecionados para cada torneio.
-    :return: Uma nova lista de indivíduos selecionados para reprodução.
-    """
     matingPool = []
     for _ in range(len(population)):
         tournament = random.sample(list(enumerate(fitnessScores)), tournamentSize)
@@ -86,17 +69,11 @@ def selectForReproduction(population, fitnessScores, tournamentSize=5):
     return matingPool
 
 def crossover(parent1, parent2):
-    """
-    Realiza o cruzamento entre dois pais para produzir um filho.
-    """
     cut = random.randint(1, len(parent1) - 1)
     child = parent1[:cut] + [gene for gene in parent2 if gene not in parent1[:cut]]
     return child
 
 def mutate(individual, mutationRate):
-    """
-    Aplica uma mutação em um indivíduo com base na taxa de mutação.
-    """
     for i in range(len(individual)):
         if random.random() < mutationRate:
             j = random.randint(0, len(individual) - 1)
@@ -112,22 +89,35 @@ def generateNextGeneration(matingPool, populationSize, mutationRate):
         newPopulation.append(child)
     return newPopulation
 
-def geneticAlgorithm(numCities, distanceMatrix):
+def geneticAlgorithm(numCities, distanceMatrix, initialTour=None):
     populationSize = 100
     maxGenerations = 1000
     mutationRate = 0.01
     elitismSize = 1 
-    population = initializePopulation(numCities, populationSize)
+    population = initializePopulation(numCities, populationSize, initialTour)
     bestSolution = None
     bestDistance = float('inf')
-
+    steps = 0
+    noImprovementCount = 0
+    improvementThreshold = 50
     for generation in range(maxGenerations):
+        steps += 1
         fitnessScores = [calculateDistance(individual, distanceMatrix) for individual in population]
         
+        improved = False
         for i, score in enumerate(fitnessScores):
             if score < bestDistance:
                 bestDistance = score
                 bestSolution = population[i]
+                improved = True
+
+        if not improved:
+            noImprovementCount += 1
+        else:
+            noImprovementCount = 0
+        if noImprovementCount >= improvementThreshold:
+            print(f"Sem melhoria significativa por {improvementThreshold} gerações.")
+            break
         
         matingPool = selectForReproduction(population, fitnessScores)
         newPopulation = generateNextGeneration(matingPool, populationSize - elitismSize, mutationRate)
@@ -138,17 +128,22 @@ def geneticAlgorithm(numCities, distanceMatrix):
         
         population = newPopulation
 
-    return bestSolution, bestDistance
+    return bestSolution, bestDistance, steps
 
-def simulatedAnnealing(numCities, distanceMatrix):
+def simulatedAnnealing(numCities, distanceMatrix, initialTour=None):
+    if initialTour is None:
+        currentTour = list(range(numCities))
+        random.shuffle(currentTour)
+    else:
+        currentTour = initialTour    
+    
     initialTemperature = 1000.0
     finalTemperature = 1.0
-    alpha = 0.995 
+    alpha = 0.8 
     maxIterations = 1000
 
-    currentTour = list(range(numCities))
-    random.shuffle(currentTour)
     currentLength = calculateTourLength(currentTour, distanceMatrix)
+    steps = 0
 
     bestTour = currentTour[:]
     bestLength = currentLength
@@ -156,6 +151,7 @@ def simulatedAnnealing(numCities, distanceMatrix):
     temperature = initialTemperature
 
     while temperature > finalTemperature:
+        steps += 1
         for _ in range(maxIterations):
             newTour = currentTour[:]
             i, j = random.sample(range(numCities), 2)
@@ -173,7 +169,7 @@ def simulatedAnnealing(numCities, distanceMatrix):
 
         temperature *= alpha
 
-    return bestTour, bestLength 
+    return bestTour, bestLength, steps
 
 def getNeighbors(tour):
     neighbors = []
@@ -185,10 +181,15 @@ def getNeighbors(tour):
             neighbors.append(neighbor)
     return neighbors
 
-def tabuSearch(numCities, distanceMatrix, tabuSize=10, maxIterations=1000, patience=100):
-    currentTour = list(range(numCities))
-    random.shuffle(currentTour)
+def tabuSearch(numCities, distanceMatrix, initialTour=None, tabuSize=10, maxIterations=1000, patience=100):
+    if initialTour is None:
+        currentTour = list(range(numCities))
+        random.shuffle(currentTour)
+    else:
+        currentTour = initialTour    
+    
     currentLength = calculateTourLength(currentTour, distanceMatrix)
+    steps = 0
 
     bestTour = currentTour[:]
     bestLength = currentLength
@@ -197,6 +198,7 @@ def tabuSearch(numCities, distanceMatrix, tabuSize=10, maxIterations=1000, patie
     noImprovementCount = 0
 
     for iteration in range(maxIterations):
+        steps += 1
         if noImprovementCount >= patience:
             break
 
@@ -224,4 +226,4 @@ def tabuSearch(numCities, distanceMatrix, tabuSize=10, maxIterations=1000, patie
 
         tabuList.append(tuple(currentTour))
 
-    return bestTour, bestLength
+    return bestTour, bestLength, steps
